@@ -1,5 +1,15 @@
 FROM ubuntu:22.04 AS chailab-baseimage
 
+ARG UNAME
+ARG GID
+ARG GNAME
+RUN groupadd -g $GID -o $GNAME
+
+ENV PATH /usr/local/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/cuda/lib64/stubs/:/usr/lib/x86_64-linux-gnu:/usr/local/cuda-12.6/targets/x86_64-linux/lib/stubs:$LD_LIBRARY_PATH
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES video,compute,utility
+
 ENV \
   LANG=C.UTF-8 \
   LC_ALL=C.UTF-8 \
@@ -16,8 +26,7 @@ ENV \
   # keep __pycache__ out of working tree
   PYTHONPYCACHEPREFIX='/tmp/.chai_lab_pycache'
 
-
-RUN --mount=type=cache,target=/var/cache/apt \
+RUN \
   apt-get -qq update \
   && apt-get -qq install -y \
   # common things
@@ -38,14 +47,13 @@ RUN --mount=type=cache,target=/var/cache/apt \
   && git config --global --add safe.directory "*" \
   #
   # cuda softlinking is needed in podman, but not docker
-  && ln -s /lib/x86_64-linux-gnu/libcuda.so.1 /lib/x86_64-linux-gnu/libcuda.so \
+#  && ln -s /lib/x86_64-linux-gnu/libcuda.so.1 /lib/x86_64-linux-gnu/libcuda.so \
   && ldconfig /lib/x86_64-linux-gnu/ \
   # setup timezone, to $TZ, ubuntu-specific
   # && ln -fs /usr/share/zoneinfo/$TZ /etc/localtime \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   # change default shell to bash (has no effect during building)
-  && chsh -s /bin/bash
-
+  && chsh -s /bin/bash 
 
 ENV \
   # expose CUDA libraries. Now that we don't build anything this is likely redundant
@@ -60,7 +68,7 @@ COPY ./requirements.in /tmp/requirements.in
 # from https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
 # a trick to have virtualenv "always activated"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN \
   # Install uv
   curl -LsSf https://astral.sh/uv/install.sh | sh \
   && $HOME/.cargo/bin/uv venv --python 3.11 $VIRTUAL_ENV \
@@ -77,3 +85,17 @@ RUN echo "PATH=\"$PATH\"" >> /etc/environment \
   && echo "EDITOR=\"$EDITOR\"" >> /etc/environment
 
 # no startup command. 
+COPY ./run_chai.py /tmp/run_chai.py
+COPY ./chai.fasta /tmp/chai.fasta
+
+RUN pip install chai_lab==0.1.0
+RUN echo '#!/bin/bash\n\
+python3 /tmp/run_chai.py "$@"' > /tmp/run_chai.sh \
+ && chmod 755       /tmp/run_chai.sh \
+ && chmod 644       /tmp/run_chai.py
+#this RUN is just in the hope of downloading the models only once
+
+#RUN nvidia-smi
+RUN /tmp/run_chai.sh /tmp/chai.fasta /tmp/chai_test
+USER $UNAME:$GNAME
+ENTRYPOINT ["/tmp/run_chai.sh"]
