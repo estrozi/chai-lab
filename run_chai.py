@@ -9,7 +9,6 @@ from chai_lab.chai1 import run_inference
 if (len(sys.argv)-1 < 2):
     print("Usage: /storage/Alphafold/scripts/alphafold3_caller.bin fastafile outdir [seed]")
     exit(1)
-
 infname = sys.argv[1]
 
 if os.access(infname, os.R_OK):
@@ -29,6 +28,7 @@ if os.access(infname, os.R_OK):
         seed=myseed,
         device=torch.device("cuda:0"),
         use_esm_embeddings=True,
+#        msa_directory=TODO/TOTEST read https://github.com/chaidiscovery/chai-lab/blob/main/examples/msas/README.md
     )
     print("writing output to " + outfname)
     subprocess.call(['chmod', '755', outfname])

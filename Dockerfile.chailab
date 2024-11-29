@@ -86,16 +86,12 @@ RUN echo "PATH=\"$PATH\"" >> /etc/environment \
 
 # no startup command. 
 COPY ./run_chai.py /tmp/run_chai.py
-COPY ./chai.fasta /tmp/chai.fasta
 
 RUN pip install chai_lab==0.1.0
 RUN echo '#!/bin/bash\n\
 python3 /tmp/run_chai.py "$@"' > /tmp/run_chai.sh \
  && chmod 755       /tmp/run_chai.sh \
  && chmod 644       /tmp/run_chai.py
-#this RUN is just in the hope of downloading the models only once
 
-#RUN nvidia-smi
-RUN /tmp/run_chai.sh /tmp/chai.fasta /tmp/chai_test
 USER $UNAME:$GNAME
 ENTRYPOINT ["/tmp/run_chai.sh"]
