@@ -53,6 +53,7 @@ def index():
         # Get text parameters from the form
         sequences = request.forms.get('sequences').strip()+'\n'
         email = request.forms.get('email')
+        restraints = request.forms.get('restraints').strip()+'\n'
         tokens_var = request.forms.get('tokens_var')
 
         # Generate a unique job ID
@@ -67,11 +68,20 @@ def index():
         with open(sequences_file, 'w') as f:
             f.write(sequences)
 
+        # Save restraints to a file inside job_output_dir
+        if(restraints != ""):
+            restraints_file = os.path.join(job_output_dir, 'input_'+job_id+'_restraints.txt')
+            with open(restraints_file, 'w') as f:
+                f.write(restraints)
+
         subprocess.call(['chmod', '664', sequences_file])
         # Launch the subprocess asynchronously
         my_env = os.environ.copy()
         my_env["IBSJOBNAME"] = job_id
-        command = ['/storage/Alphafold/scripts/alphafold3_chai_caller.bin', sequences_file]
+        if(restraints != ""):
+            command = ['/storage/Alphafold/scripts/alphafold3_chai_caller.bin', sequences_file, restraints_file]
+        else:
+            command = ['/storage/Alphafold/scripts/alphafold3_chai_caller.bin', sequences_file]
         subprocess.Popen(command, cwd=job_output_dir, env=my_env)
 
         # Return the job URL to the client
@@ -355,12 +365,15 @@ p { margin:0; }
 </head>
 <body>
 <h1>Alphafold 3 chai IBS server</h1>
-<form method="post">
+<form method="post" enctype="multipart/form-data">
     <p>Fasta protein/DNA/RNA <a href="https://www.uniprot.org/" target="_blank" title="open uniprot for searching">sequence</a>(s) and <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" title="open the smiles library for searching">ligands</a>:</p>
     <p><textarea id="sequences" name="sequences" rows="20" cols="100" required="true" wrap="off" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="text-align:left;"></textarea></p>
     <p style="text-align:right"><span>tokens:</span><span id="tokens_span">0/2048</span></p>
     <p>E-mail to get a job-done notification:</p>
     <p><input type="email" id="email" name="email" style="text-align:right;" required autocorrect="off" autocapitalize="off" spellcheck="false" pattern="^[a-z0-9._\-]+@ibs\.fr" placeholder="your_email@ibs.fr"></p>
+    <p>&nbsp;</p>
+    <p>Optional restraints (as in <a href="https://github.com/chaidiscovery/chai-lab/blob/main/examples/restraints/contact.restraints" target="_blank">here</a> or <a href="https://github.com/chaidiscovery/chai-lab/blob/main/examples/restraints/pocket.restraints" target="_blank">there</a>):</p>
+    <p><textarea id="restraints" name="restraints" rows="5" cols="50" wrap="off" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="text-align:left;"></textarea></p>
     <p>&nbsp;</p>
     <input type="submit" value="Submit" style="font-size: 24px">
     <p>&nbsp;</p>

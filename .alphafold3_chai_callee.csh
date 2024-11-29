@@ -9,7 +9,7 @@ umask 113; # rw-rw-r--
 
 set caller = "/storage/Alphafold/scripts/alphafold3_chai_caller.bin"
   if($#argv < 3) then
-echo "Usage: $caller fastafile [seed]"; 
+echo "Usage: $caller fastafile [restraints] [seed]"; 
 echo "";
 exit 0;
   endif
@@ -60,34 +60,38 @@ chmod 770 $outdir2;
 if($status) goto failed;
 chgrp 7182 $outdir2;
 if($status) goto failed;
+
+  if( -e $outdir2/pred.model_idx_4.cif && ! -z $outdir2/pred.model_idx_4.cif ) then
+echo "Final file pred.model_idx_4.cif found. Aborting..." |& tee -a $outdir.log;
+echo "This probably means that this prediction was already calculated before." |& tee -a $outdir.log;
+goto legrandfinale;
+  endif
+
 echo 0 >! $outdir2/running.txt;
 if($status) goto failed;
 chown ${u}:${g} $outdir2/running.txt
 if($status) goto failed;
 
-  if( -e $outdir2/pred.model_idx_4.cif && ! -z $outdir2/pred.model_idx_4.cif ) then
-echo "Final file pred.model_idx_4.cif found. Aborting..."
-echo "This probably means that this prediction was already calculated before."
-echo "Moving $outdir2 to $outdir"
-rm -f $outdir2/running.txt;
-if($status) goto failed;
-echo 0 >! $outdir2/finished.txt;
-if($status) goto failed;
-chown ${u}:${g} $outdir2/finished.txt
-if($status) goto failed;
-mv $outdir2 $outdir;
-if($status) goto failed;
-exit 0;
+set restra = "";
+  if($#argv > 3) then
+    if( $4 != "") then
+      if(! -e "$4") then
+echo "${caller}: ERROR restaints file not found" | tee -a $outdir.log;
+goto failed;
+      else
+set restra = "$4";
+      endif
+    endif
   endif
 
 set seed = "";
-  if($#argv > 3) then
-    if( $4 != "") then
-      if(`echo $4 | awk '{if(math($1,/[^0-9]+/)){print 1} else {print 0}}'`) then
-echo "${caller}: ERROR 4th argument is not a numeric seed" | tee -a $outdir.log;
+  if($#argv > 4) then
+    if( $5 != "") then
+      if(`echo $5 | awk '{if(math($1,/[^0-9]+/)){print 1} else {print 0}}'`) then
+echo "${caller}: ERROR 5th argument is not a numeric seed" | tee -a $outdir.log;
 goto failed;
       else
-set seed = "$4";
+set seed = "$5";
       endif
     endif
   endif
@@ -95,8 +99,16 @@ set seed = "$4";
 cp -a $fasta /storage/Data/AF3chaijobs/${fasta:t};
 if($status) goto failed;
 
-eval $AF3chai_CMD" chai-lab /app/storage/Data/AF3chaijobs/${fasta:t} /app${outdir2} ${seed}" |& tee -a $outdir.log;
+  if($restra != "") then
+cp -a $restra /storage/Data/AF3chaijobs/${restra:t};
 if($status) goto failed;
+eval ${AF3chai_CMD}" chai-lab /app/storage/Data/AF3chaijobs/${fasta:t} /app${outdir2} '/app/storage/Data/AF3chaijobs/${restra:t}' '${seed}'" |& tee -a $outdir.log;
+if($status) goto failed;
+  else
+eval ${AF3chai_CMD}" chai-lab /app/storage/Data/AF3chaijobs/${fasta:t} /app${outdir2} '' '${seed}'" |& tee -a $outdir.log;
+if($status) goto failed;
+  endif
+
     
 chown ${u}:${g} $outdir.log;
 if($status) goto failed;
@@ -106,6 +118,8 @@ if($status) goto failed;
 
 rm -f $outdir2/running.txt;
 if($status) goto failed;
+
+legrandfinale:
 
   if(-e /storage/Data/AF3chaijobs/AF3chai.log ) then
 grep $jobname /storage/Data/AF3chaijobs/AF3chai.log | awk -v FS="<td>" '{print $3}' | sed -e 's/<\/td>//' >& /dev/null;
@@ -134,6 +148,7 @@ chown -R ${u}:${g} $outdir;
 if($status) goto failed;
 rm -f /storage/Data/AF3chaijobs/${fasta:t};
 if($status) goto failed;
+rm -f /storage/Data/AF3chaijobs/${restra:t};
 
 exit 0;
 
