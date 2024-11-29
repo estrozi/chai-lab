@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import torch
 
 from chai_lab.chai1 import run_inference
 
@@ -11,6 +10,7 @@ from chai_lab.chai1 import run_inference
 # - ligands are encoded with SMILES; modified residues encoded like AAA(SEP)AAA
 
 # Example given below, just modify it
+
 
 example_fasta = """
 >protein|name=example-of-long-protein
@@ -35,7 +35,7 @@ candidates = run_inference(
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,
-    device=torch.device("cuda:0"),
+    device="cuda:0",
     use_esm_embeddings=True,
 )
 
