@@ -361,6 +361,14 @@ input:valid {
 html * { text-align:center; padding:0px !important; }
 table, td { border:0px solid black; border-collapse:collapse; }
 p { margin:0; }
+.blink {
+  animation: blinker 1s linear infinite;
+}
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
 </style>
 </head>
 <body>
@@ -417,7 +425,7 @@ GCTACGTAGACTAGCTAGCTACGTACGTACGTACGATCG
                 </td>
                 <td width="26%">
 <p style="text-align:left;"><b>Only</b> allowed keywords: <b>protein</b>, <b>ligand</b>, <b>DNA</b> & <b>RNA</b></p>
-<p style="text-align:left;"><b>NOTE</b>: it is *mandatory* to specify the <b>keyword</b> after each <b>&gt;</b> symbol followed by the 'pipe' <b>|</b> character and a *unique* <b>one word</b> descriptor.</p>
+<p style="text-align:left;"><b>NOTE</b>: it is *mandatory* to specify the <b>keyword</b> after each <b>&gt;</b> symbol followed by the 'pipe' <b>|</b> character and a *unique* <b class="blink">one word</b> descriptor.</p>
 <p>&nbsp;</p>
 <p style="text-align:left;"><a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" title="open the smiles library for searching">Ligands</a> are in <a href="https://en.wikipedia.org/wiki/Simplified_Molecular_Input_Line_Entry_System" target="_blank">smiles format</a>.</p>
 <p>&nbsp;</p>
